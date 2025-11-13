@@ -1,28 +1,34 @@
 /*
 Assignment:
-HW3 - Parser and Code Generator for PL/0
+HW4 - Complete Parser and Code Generator for PL/0
+(with Procedures, Call, and Else)
 Author(s): Noah Rossetti, Whitney Evans
 Language: C (only)
 To Compile:
 Scanner:
 gcc -O2 -std=c11 -o lex lex.c
 Parser/Code Generator:
-gcc -O2 -std=c11 -o parsercodegen parsercodegen.c
+gcc -O2 -std=c11 -o parsercodegen_complete parsercodegen_complete.c
+Virtual Machine:
+gcc -O2 -std=c11 -o vm vm.c
 To Execute (on Eustis):
 ./lex <input_file.txt>
-./parsercodegen
+./parsercodegen_complete
+./vm elf.txt
 where:
 <input_file.txt> is the path to the PL/0 source program
 Notes:
 - lex.c accepts ONE command-line argument (input PL/0 source file)
-- parsercodegen.c accepts NO command-line arguments
-- Input filename is hard-coded in parsercodegen.c
-- Implements recursive-descent parser for PL/0 grammar
+- parsercodegen_complete.c accepts NO command-line arguments
+- Input filename is hard-coded in parsercodegen_complete.c
+- Implements recursive-descent parser for extended PL/0 grammar
+- Supports procedures, call statements, and if-then-else
 - Generates PM/0 assembly code (see Appendix A for ISA)
+- VM must support EVEN instruction (OPR 0 11)
 - All development and testing performed on Eustis
 Class: COP3402 - System Software - Fall 2025
 Instructor: Dr. Jie Lin
-Due Date: Friday, October 31, 2025 at 11:59 PM ET
+Due Date: Friday, November 21, 2025 at 11:59 PM ET
 */
 
 //defines symbol struct and makes size 500 array of them
@@ -75,9 +81,10 @@ evensym // even
  FILE *OutputFile;
 
 void program();
-void Block();
-void ConstDeclaration();
-int VarDeclaration();
+void Block(int level);
+void ConstDeclaration(int level);
+int VarDeclaration(int level);
+void ProcedureDeclaration(int level);
 void Statement();
 void Condition();
 void Expression();
@@ -162,7 +169,7 @@ int SymbolTableCheck(char* namesearch){
 
 void program(){
 emit(7,0,3);
-Block();
+Block(0);
     if(proccesedTokenArray[tokenTracker]!=periodsym)
     {
         fprintf(OutputFile, "Error: program must end with period");
@@ -179,17 +186,17 @@ Block();
 }
 
 
-void Block(){
-ConstDeclaration();
-numvars = VarDeclaration();
-
+void Block(int level){
+ConstDeclaration(level);
+numvars = VarDeclaration(level);
+ProcedureDeclaration(level);
 emit(6, 0, (3+numvars));
 Statement();
 
 
 }
 
-void ConstDeclaration(){
+void ConstDeclaration(int level){
     char ident[12];
 
 
@@ -226,7 +233,7 @@ void ConstDeclaration(){
 
                         //have to change to ascii value later
                         symbol_table[symTracker].kind = 1;
-                        symbol_table[symTracker].level = 0;
+                        symbol_table[symTracker].level = level;
                         symbol_table[symTracker].mark = 0;
 
                         symbol_table[symTracker].val = proccesedTokenArray[tokenTracker];
@@ -279,7 +286,7 @@ void ConstDeclaration(){
 
 }
 
-int VarDeclaration(){
+int VarDeclaration(int level){
     char ident[12];
 
     if(proccesedTokenArray[tokenTracker]==varsym)
@@ -292,6 +299,13 @@ int VarDeclaration(){
             tokenTracker++;
 
             numvars++;
+            /////////////////new/////////////////////
+            if(proccesedTokenArray[tokenTracker]!= identsym)
+            {
+                fprintf(OutputFile, "Error: const, var, and read keywords must be followed by identifier");
+                printf("Error: const, var, and read keywords must be followed by identifier");
+                exit(-1);
+            }
 
             if(SymbolTableCheck(ProccesedVarArray[varTracker])!=-1)
             {
@@ -306,14 +320,14 @@ int VarDeclaration(){
             strcpy(symbol_table[symTracker].name, ident);
             //have to change to ascii value later
             symbol_table[symTracker].kind = 2;
-            symbol_table[symTracker].level = 0;
+            symbol_table[symTracker].level = level;
             symbol_table[symTracker].mark = 0;
             symbol_table[symTracker].addr = numvars+2;
 
-        symbol_table[symTracker].val = 0;
+            symbol_table[symTracker].val = 0;
 
 
-         symTracker++;
+            symTracker++;
 
 
         }while(proccesedTokenArray[tokenTracker]==commasym);
@@ -330,6 +344,60 @@ int VarDeclaration(){
 
     }
 return numvars;
+}
+
+void ProcedureDeclaration(int level){
+    char ident[12];
+
+    while(proccesedTokenArray[tokenTracker]==procsym){
+        tokenTracker++;
+
+        if (proccesedTokenArray[tokenTracker] != identsym){
+            fprintf(OutputFile, "Error: call statement may only target procedures");
+            printf("Error: call statement may only target procedures");
+            exit(-1);
+
+
+        }
+        tokenTracker++;
+        if (proccesedTokenArray[tokenTracker] != semicolonsym){
+
+            fprintf(OutputFile, "Error: procedure declaration must be followed by a semicolon");
+            printf("Error: procedure declaration must be followed by a semicolon");
+            exit(-1);
+
+        }
+        tokenTracker++;
+
+            strcpy(ident, ProccesedVarArray[varTracker]);
+            tokenTracker++;
+            varTracker++;
+
+            strcpy(symbol_table[symTracker].name, ident);
+            //have to change to ascii value later
+            symbol_table[symTracker].kind = 3;
+            symbol_table[symTracker].level = level;
+            //probably wrong below
+            symbol_table[symTracker].addr=tokenTracker;
+
+
+            symTracker++;
+            Block(level+1);
+
+            if (proccesedTokenArray[tokenTracker] != semicolonsym);{
+
+            fprintf(OutputFile, "Error: procedure declaration must be followed by a semicolon");
+            printf("Error: procedure declaration must be followed by a semicolon");
+            exit(-1);
+
+            }
+            tokenTracker++;
+
+    }
+
+
+
+
 }
 
 void Statement(){
@@ -356,6 +424,8 @@ void Statement(){
         }
         tokenTracker++;
         varTracker++;
+
+
         if(proccesedTokenArray[tokenTracker]!=becomessym)
         {
             fprintf(OutputFile, "Error: assignment statements must use :=");
@@ -370,6 +440,44 @@ void Statement(){
         return;
 
     }
+    /////////////new///////////
+     else if(proccesedTokenArray[tokenTracker]!=callsym)
+     {
+
+        tokenTracker++;
+        if(proccesedTokenArray[tokenTracker]!=identsym){
+
+            //////change error///////////
+            fprintf(OutputFile, "Error: assignment statements must use :=");
+            printf("Error: assignment statements must use :=");
+            exit(-1);
+
+        }
+        int idx = SymbolTableCheck(ProccesedVarArray[varTracker]);
+        if(idx == -1){
+
+             //////change error///////////
+            fprintf(OutputFile, "Error: undeclared identifier");
+            printf("Error: undeclared identifier");
+            exit(-1);
+
+        }
+        if(symbol_table[idx].kind != 3){
+
+             //////change error///////////
+            fprintf(OutputFile, "Error: call statement may only target procedures");
+            printf("Error: call statement may only target procedures");
+            exit(-1);
+
+        }
+        emit(5,symbol_table[idx].level,symbol_table[idx].addr);
+        tokenTracker++;
+        return;
+
+
+
+     }
+
      else if(proccesedTokenArray[tokenTracker]==beginsym)
     {
         do{
@@ -405,10 +513,21 @@ void Statement(){
         }
         tokenTracker++;
         Statement();
+
+        if(proccesedTokenArray[tokenTracker]!=elsesym)
+        {
+            fprintf(OutputFile, "Error: if statement must include else clause");
+            printf("Error: if statement must include else clause");
+            exit(-1);
+
+        }
+        tokenTracker++;
+        Statement();
+
         if(proccesedTokenArray[tokenTracker]!=fisym)
         {
-            fprintf(OutputFile, "Error: if must be followed by then");
-            printf("Error: if must be followed by then");
+            fprintf(OutputFile, "else must be followed by fi");
+            printf("else must be followed by fi");
             exit(-1);
 
         }
