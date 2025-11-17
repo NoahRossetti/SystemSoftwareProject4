@@ -121,7 +121,7 @@ code text[CODE_SIZE];
 
 char FileArray[500],ProccesedVarArray[100][12];
 
-int tokenTracker = 0,varTracker = 0,symTracker = 0,numvars=0,proccesedTokenArray[500], cx = 0;
+int tokenTracker = 0,varTracker = 0,symTracker = 0,proccesedTokenArray[500], cx = 1;
 
 
 
@@ -168,7 +168,9 @@ int SymbolTableCheck(char* namesearch){
 //Parsing functions start here
 
 void program(){
-emit(7,0,3);
+    //could reserve spot for initial jump in code and just place it in once
+    //procedures are sorted
+
 Block(0);
     if(proccesedTokenArray[tokenTracker]!=periodsym)
     {
@@ -187,9 +189,16 @@ Block(0);
 
 
 void Block(int level){
+    printf(" Beginning of Block: %d",proccesedTokenArray[tokenTracker]);
 ConstDeclaration(level);
-numvars = VarDeclaration(level);
+int numvars = VarDeclaration(level);
 ProcedureDeclaration(level);
+printf("            cx: %d", cx);
+if(level==0){
+    text[0].L = 0;
+    text[0].M = (cx*3);
+    text[0].op = 7;
+}
 emit(6, 0, (3+numvars));
 Statement();
 
@@ -197,6 +206,7 @@ Statement();
 }
 
 void ConstDeclaration(int level){
+    printf(" Beginning of Const: %d",proccesedTokenArray[tokenTracker]);
     char ident[12];
 
 
@@ -287,6 +297,8 @@ void ConstDeclaration(int level){
 }
 
 int VarDeclaration(int level){
+    int numvars = 0;
+    printf(" Beginning of Var: %d",proccesedTokenArray[tokenTracker]);
     char ident[12];
 
     if(proccesedTokenArray[tokenTracker]==varsym)
@@ -343,11 +355,19 @@ int VarDeclaration(int level){
 
 
     }
+    printf(" numvar: %d ", numvars);
 return numvars;
 }
 
 void ProcedureDeclaration(int level){
+    printf(" Beginning of Procedure: %d %d",level, proccesedTokenArray[tokenTracker]);
     char ident[12];
+    int start_address = 0;
+
+    if(proccesedTokenArray[tokenTracker]==procsym){
+        start_address = cx*3;
+        emit(7,0,(cx+1)*3);
+    }
 
     while(proccesedTokenArray[tokenTracker]==procsym){
         tokenTracker++;
@@ -370,7 +390,7 @@ void ProcedureDeclaration(int level){
         tokenTracker++;
 
             strcpy(ident, ProccesedVarArray[varTracker]);
-            tokenTracker++;
+            //tokenTracker++;
             varTracker++;
 
             strcpy(symbol_table[symTracker].name, ident);
@@ -378,30 +398,31 @@ void ProcedureDeclaration(int level){
             symbol_table[symTracker].kind = 3;
             symbol_table[symTracker].level = level;
             //probably wrong below
-            symbol_table[symTracker].addr=tokenTracker;
+            symbol_table[symTracker].addr=start_address;
 
 
             symTracker++;
             Block(level+1);
-
-            if (proccesedTokenArray[tokenTracker] != semicolonsym);{
+            printf("before procedure semicolon: %d ",proccesedTokenArray[tokenTracker]);
+            if (proccesedTokenArray[tokenTracker] != semicolonsym){
 
             fprintf(OutputFile, "Error: procedure declaration must be followed by a semicolon");
-            printf("Error: procedure declaration must be followed by a semicolon");
+            printf("xxcxzError: procedure declaration must be followed by a semicolon");
             exit(-1);
 
             }
             tokenTracker++;
-
+        emit(2,0,0);
+        printf(" cx: %d", cx);
     }
 
 
-
+   //emit(2,0,0);
 
 }
 
 void Statement(){
-
+printf(" Beginning of Statement: %d",proccesedTokenArray[tokenTracker]);
 
 
     if(proccesedTokenArray[tokenTracker]==identsym)
@@ -441,8 +462,9 @@ void Statement(){
 
     }
     /////////////new///////////
-     else if(proccesedTokenArray[tokenTracker]!=callsym)
+     else if(proccesedTokenArray[tokenTracker]==callsym)
      {
+         printf(" Beginning of call: %d",proccesedTokenArray[tokenTracker]);
 
         tokenTracker++;
         if(proccesedTokenArray[tokenTracker]!=identsym){
@@ -454,6 +476,7 @@ void Statement(){
 
         }
         int idx = SymbolTableCheck(ProccesedVarArray[varTracker]);
+        printf(" idx: %s", ProccesedVarArray[varTracker]);
         if(idx == -1){
 
              //////change error///////////
@@ -463,13 +486,15 @@ void Statement(){
 
         }
         if(symbol_table[idx].kind != 3){
-
+                printf(" kind check: %d",symbol_table[idx].kind );
+            printf(" Beginning of kind check: %d",proccesedTokenArray[tokenTracker]);
              //////change error///////////
             fprintf(OutputFile, "Error: call statement may only target procedures");
             printf("Error: call statement may only target procedures");
             exit(-1);
 
         }
+
         emit(5,symbol_table[idx].level,symbol_table[idx].addr);
         tokenTracker++;
         return;
@@ -487,6 +512,8 @@ void Statement(){
 
         }while(proccesedTokenArray[tokenTracker]==semicolonsym);
 
+        printf("before endsym: %d ",proccesedTokenArray[tokenTracker]);
+
         if(proccesedTokenArray[tokenTracker]!=endsym)
         {
             fprintf(OutputFile, "Error: begin must be followed by end");
@@ -495,6 +522,7 @@ void Statement(){
 
         }
         tokenTracker++;
+        printf("after endsym: %d ",proccesedTokenArray[tokenTracker]);
         return;
 
     }
@@ -605,12 +633,13 @@ void Statement(){
     }
 
 
-
+printf(" end of Statement: %d",proccesedTokenArray[tokenTracker]);
 
 }
 
 void Condition()
 {
+    printf(" Beginning of Condition: %d",proccesedTokenArray[tokenTracker]);
     //come back to this later
 
     //if(proccesedTokenArray[tokenTracker]==2) tokenTracker++;
@@ -679,6 +708,7 @@ void Condition()
 
 //double check this
 void Expression(){
+    printf(" Beginning of Expression: %d",proccesedTokenArray[tokenTracker]);
     //if(proccesedTokenArray[tokenTracker]==2) tokenTracker++;
 
         Term();
@@ -734,6 +764,7 @@ void Expression(){
 
 void Term()
 {
+    printf(" Beginning of Term: %d",proccesedTokenArray[tokenTracker]);
     Factor();
     while(proccesedTokenArray[tokenTracker]==multsym||proccesedTokenArray[tokenTracker]==slashsym)
     {
@@ -759,7 +790,7 @@ void Term()
 }
 
 void Factor(){
-
+    printf(" Beginning of Factor: %d",proccesedTokenArray[tokenTracker]);
 
     if(proccesedTokenArray[tokenTracker]==identsym)
     {
@@ -807,6 +838,8 @@ void Factor(){
             exit(-1);
 
         }
+
+
         tokenTracker++;
 
     }
@@ -993,7 +1026,7 @@ int main(){
     for(i=0; i < symTracker; i++)
     {
 
-        printf("\n   %d|   \t%s|\t%d|\t0|\t%d|\t%d",symbol_table[i].kind,symbol_table[i].name,symbol_table[i].val,symbol_table[i].addr,symbol_table[i].mark);
+        printf("\n   %d|   \t%s|\t%d|\t%d|\t%d|\t%d",symbol_table[i].kind,symbol_table[i].name,symbol_table[i].val,symbol_table[i].level,symbol_table[i].addr,symbol_table[i].mark);
 
     }
 
