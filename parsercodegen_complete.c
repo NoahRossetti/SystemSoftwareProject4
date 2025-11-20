@@ -197,13 +197,13 @@ Block();
 
 void Block(){
 
-    printf(" Beginning of Block: %d",proccesedTokenArray[tokenTracker]);
+    
     int jump_address= cx;
     emit(7,0,0);
 ConstDeclaration(level);
 int numvars = VarDeclaration(level);
 ProcedureDeclaration(level);
-printf("            cx: %d", cx);
+
 text[jump_address].M = cx*3;
 
 emit(6, 0, (3+numvars));
@@ -213,7 +213,7 @@ Statement();
 }
 
 void ConstDeclaration(){
-    printf(" Beginning of Const: %d",proccesedTokenArray[tokenTracker]);
+   
     char ident[12];
 
 
@@ -305,7 +305,7 @@ void ConstDeclaration(){
 
 int VarDeclaration(){
     int numvars = 0;
-    printf(" Beginning of Var: %d",proccesedTokenArray[tokenTracker]);
+    
     char ident[12];
 
     if(proccesedTokenArray[tokenTracker]==varsym)
@@ -337,7 +337,7 @@ int VarDeclaration(){
             varTracker++;
 
             strcpy(symbol_table[symTracker].name, ident);
-            printf(" %s ",symbol_table[symTracker].name);
+           
             //have to change to ascii value later
             symbol_table[symTracker].kind = 2;
             symbol_table[symTracker].level = level;
@@ -363,12 +363,12 @@ int VarDeclaration(){
 
 
     }
-    printf(" numvar: %d ", numvars);
+    
 return numvars;
 }
 
 void ProcedureDeclaration(){
-    printf("**********Beginning of Procedure: %d %d %s***********",level, proccesedTokenArray[tokenTracker], ProccesedVarArray[varTracker]);
+    
     char ident[12];
     int start_address = 0;
 
@@ -399,7 +399,7 @@ void ProcedureDeclaration(){
         }
         tokenTracker++;
 
-            printf("            before procedure in table %d                ",proccesedTokenArray[tokenTracker]);
+            
             strcpy(ident, ProccesedVarArray[varTracker]);
             //tokenTracker++;
             varTracker++;
@@ -416,7 +416,7 @@ void ProcedureDeclaration(){
             level++;
             Block();
             level--;
-            printf("            before procedure semicolon: %d                ",proccesedTokenArray[tokenTracker]);
+            
             if (proccesedTokenArray[tokenTracker] != semicolonsym){
 
             fprintf(OutputFile, "Error: procedure declaration must be followed by a semicolon");
@@ -438,7 +438,7 @@ void ProcedureDeclaration(){
 
 
         emit(2,0,0);
-        printf(" cx: %d", cx);
+        
     }
 
 
@@ -447,14 +447,14 @@ void ProcedureDeclaration(){
 }
 
 void Statement(){
-printf(" Beginning of Statement: %d",proccesedTokenArray[tokenTracker]);
+
 
 
     if(proccesedTokenArray[tokenTracker]==identsym)
     {
 
         int symidx = SymbolTableCheck(ProccesedVarArray[varTracker]);
-        printf("        sym search: %s: ",ProccesedVarArray[varTracker]);
+        
 
         if(symidx == -1)
         {
@@ -485,7 +485,7 @@ printf(" Beginning of Statement: %d",proccesedTokenArray[tokenTracker]);
 
         emit(4,level-symbol_table[symidx].level,symbol_table[symidx].addr);
 
-         printf("/////////////// after sto: %d //////////////////", proccesedTokenArray[tokenTracker]);
+        
         return;
 
     }
@@ -493,7 +493,7 @@ printf(" Beginning of Statement: %d",proccesedTokenArray[tokenTracker]);
      else if(proccesedTokenArray[tokenTracker]==callsym)
      {
 
-         printf(" Beginning of call: %d",proccesedTokenArray[tokenTracker]);
+        
 
         tokenTracker++;
         if(proccesedTokenArray[tokenTracker]!=identsym){
@@ -505,7 +505,7 @@ printf(" Beginning of Statement: %d",proccesedTokenArray[tokenTracker]);
 
         }
         int idx = SymbolTableCheck(ProccesedVarArray[varTracker]);
-        printf(" idx: %s", ProccesedVarArray[varTracker]);
+        
         if(idx == -1){
 
              //////change error///////////
@@ -515,15 +515,15 @@ printf(" Beginning of Statement: %d",proccesedTokenArray[tokenTracker]);
 
         }
         if(symbol_table[idx].kind != 3){
-                printf(" kind check: %d",symbol_table[idx].kind );
-            printf(" Beginning of kind check: %d",proccesedTokenArray[tokenTracker]);
+                
+            
              //////change error///////////
             fprintf(OutputFile, "Error: call statement may only target procedures");
             printf("Error: call statement may only target procedures");
             exit(-1);
 
         }
-        printf("                     idx::: %d  %d  %s                                   ",level,symbol_table[idx].level,symbol_table[idx].name);
+       
         emit(5,level-symbol_table[idx].level,symbol_table[idx].addr);
         tokenTracker++;
         varTracker++;
@@ -536,14 +536,14 @@ printf(" Beginning of Statement: %d",proccesedTokenArray[tokenTracker]);
      else if(proccesedTokenArray[tokenTracker]==beginsym)
     {
         do{
-            printf("begin loop start: %d ",proccesedTokenArray[tokenTracker]);
+           
         tokenTracker++;
         Statement();
-        printf("begin loop end: %d ",proccesedTokenArray[tokenTracker]);
+        
 
         }while(proccesedTokenArray[tokenTracker]==semicolonsym);
 
-        printf("before endsym: %d ",proccesedTokenArray[tokenTracker]);
+        
 
         if(proccesedTokenArray[tokenTracker]!=endsym)
         {
@@ -553,13 +553,13 @@ printf(" Beginning of Statement: %d",proccesedTokenArray[tokenTracker]);
 
         }
         tokenTracker++;
-        printf("after endsym: %d ",proccesedTokenArray[tokenTracker]);
+        
         return;
 
     }
     else if(proccesedTokenArray[tokenTracker]==ifsym)
     {
-         printf("ifsym opening: %d ", proccesedTokenArray[tokenTracker]);
+         
         tokenTracker++;
         Condition();
         int jpcidx = cx;
@@ -572,14 +572,14 @@ printf(" Beginning of Statement: %d",proccesedTokenArray[tokenTracker]);
 
         }
         tokenTracker++;
-        printf(" +++++++++++++++++++++++token before this statement: %d ++++++++++", proccesedTokenArray[tokenTracker]);
+       
         text[jpcidx].M = (cx*3);
         Statement();
         //look into + 3
         text[jpcidx].M = (cx*3)+3;
         int jumpAddress = cx;
         emit(7,0,0);
-        printf("    //////// before elsym %d /////////", proccesedTokenArray[tokenTracker+1]);
+        
         if(proccesedTokenArray[tokenTracker]!=elsesym)
         {
 
@@ -662,7 +662,7 @@ printf(" Beginning of Statement: %d",proccesedTokenArray[tokenTracker]);
         tokenTracker++;
         emit(9,0,2);
         emit(4,level-symbol_table[symidx].level,symbol_table[symidx].addr);
-        printf("/////////////// after sto: %d //////////////////", proccesedTokenArray[tokenTracker]);
+        
         return;
 
 
@@ -677,13 +677,13 @@ printf(" Beginning of Statement: %d",proccesedTokenArray[tokenTracker]);
     }
 
 
-printf(" end of Statement: %d",proccesedTokenArray[tokenTracker]);
+
 
 }
 
 void Condition()
 {
-    printf(" Beginning of Condition: %d",proccesedTokenArray[tokenTracker]);
+    
     //come back to this later
 
     //if(proccesedTokenArray[tokenTracker]==2) tokenTracker++;
@@ -747,12 +747,12 @@ void Condition()
         }
     }
 
-    printf(" end of Condition: %d",proccesedTokenArray[tokenTracker]);
+    
 }
 
 //double check this
 void Expression(){
-    printf(" Beginning of Expression: %d",proccesedTokenArray[tokenTracker]);
+   
     //if(proccesedTokenArray[tokenTracker]==2) tokenTracker++;
 
         Term();
@@ -803,12 +803,12 @@ void Expression(){
             }
     }
 
-printf(" end of Expression: %d",proccesedTokenArray[tokenTracker]);
+
 }
 
 void Term()
 {
-    printf(" Beginning of Term: %d",proccesedTokenArray[tokenTracker]);
+    
     Factor();
     while(proccesedTokenArray[tokenTracker]==multsym||proccesedTokenArray[tokenTracker]==slashsym)
     {
@@ -830,11 +830,11 @@ void Term()
         }
         //mod would go here
     }
-     printf(" endof Term: %d",proccesedTokenArray[tokenTracker]);
+     
 }
 
 void Factor(){
-    printf(" Beginning of Factor: %d",proccesedTokenArray[tokenTracker]);
+    
 
     if(proccesedTokenArray[tokenTracker]==identsym)
     {
@@ -860,7 +860,7 @@ void Factor(){
 
 
         }
-        printf(" %s ", symbol_table[symidx].name);
+        
         tokenTracker++;
         varTracker++;
 
@@ -898,7 +898,7 @@ void Factor(){
 
     }
 
-    printf(" end of Factor: %d",proccesedTokenArray[tokenTracker]);
+    
 }
 
 
@@ -942,7 +942,7 @@ int main(){
         //fills buffer array
         if(isdigit(FileArray[j]))
         {
-            //printf("\n is digit ");
+            
             while(FileArray[j]!='\0'&&FileArray[j]!='\n'&&isdigit(FileArray[j]))
             {
 
