@@ -1,34 +1,33 @@
 /*
-Assignment:
-HW4 - Complete Parser and Code Generator for PL/0
-(with Procedures, Call, and Else)
-Author(s): Noah Rossetti, Whitney Evans
-Language: C (only)
-To Compile:
-Scanner:
-gcc -O2 -std=c11 -o lex lex.c
-Parser/Code Generator:
-gcc -O2 -std=c11 -o parsercodegen_complete parsercodegen_complete.c
-Virtual Machine:
-gcc -O2 -std=c11 -o vm vm.c
-To Execute (on Eustis):
-./lex <input_file.txt>
-./parsercodegen_complete
-./vm elf.txt
-where:
-<input_file.txt> is the path to the PL/0 source program
-Notes:
-- lex.c accepts ONE command-line argument (input PL/0 source file)
-- parsercodegen_complete.c accepts NO command-line arguments
-- Input filename is hard-coded in parsercodegen_complete.c
-- Implements recursive-descent parser for extended PL/0 grammar
-- Supports procedures, call statements, and if-then-else
-- Generates PM/0 assembly code (see Appendix A for ISA)
-- VM must support EVEN instruction (OPR 0 11)
-- All development and testing performed on Eustis
-Class: COP3402 - System Software - Fall 2025
-Instructor: Dr. Jie Lin
-Due Date: Friday, November 21, 2025 at 11:59 PM ET
+Assignment :
+vm . c - Implement a P - machine virtual machine
+
+Authors : Noah Rossetti, Whitney Evans
+
+Language : C ( only )
+
+To Compile :
+    gcc - O2 - Wall - std = c11 -o vm vm . c
+
+To Execute ( on Eustis ) :
+    ./ vm input . txt
+
+where :
+    input . txt is the name of the file containing PM /0 instructions ;
+    each line has three integers ( OP L M )
+
+Notes :
+    - Implements the PM /0 virtual machine described in the homework
+    instructions .
+    - No dynamic memory allocation or pointer arithmetic .
+    - Does not implement any VM instruction using a separate function .
+    - Runs on Eustis .
+
+Class : COP 3402 - Systems Software - Fall 2025
+
+Instructor : Dr . Jie Lin
+
+Due Date : Friday , September 12 th , 2025
 */
 
 #include <stdio.h>
@@ -55,7 +54,7 @@ void printStack(int BP, int SP){
     //base case
     if(pas[BP-1]!=0){
 
-     printStack(pas[BP-1], BP);
+     printStack(pas[BP], (BP+1));
 
     }
     printf(" | ");
@@ -77,16 +76,14 @@ void printStack(int BP, int SP){
 
 int main(int argc, char *argv[]){
 
-/*
-if(argc!=2){
+//if(argc!=2){
 
-    printf("error: incorrect number of arguments");
-    return 0;
+//    printf("error: incorrect number of arguments");
+ //   return 0;
 
-}
+//}
 
-FILE *inputFile = fopen(argv[1], "r");
-*/
+//FILE *inputFile = fopen(argv[1], "r");
 FILE *inputFile = fopen("elf.txt", "r");
 
 int pc = 499, bp, sp, IR[3],  bufferReader = 0, instructionLoader = 499, Halt = 0;
@@ -157,6 +154,7 @@ while(Halt != 1){
     if(IR[2] == 1){
 
     sp = sp - 1;
+
     pas[sp] = IR[0];
 
     strcpy(opCode, "LIT");
@@ -194,7 +192,7 @@ while(Halt != 1){
 
     strcpy(opCode, "CAL");
 
-    continue;
+    //continue;
 
     }
 
@@ -205,12 +203,13 @@ while(Halt != 1){
 
     sp = sp - IR[0];
 
-     strcpy(opCode, "JMP");
+     //strcpy(opCode, "JMP");
+     strcpy(opCode, "INC");
     printf(" %s \t %d\t %d   %d  %d %d ", opCode, IR[1], IR[0], pc, bp, sp);
     printStack(bp, sp);
     printf(" \n");
-    strcpy(opCode, "INC");
-
+    //strcpy(opCode, "INC");
+    continue;
     }
 
     //Unconditional Jumo
@@ -237,10 +236,9 @@ while(Halt != 1){
 
         }
 
-        else
-            sp = sp + 1;
 
-           strcpy(opCode, "STO");
+
+           strcpy(opCode, "JPC");
 
     }
 
@@ -373,12 +371,14 @@ while(Halt != 1){
              strcpy(opCode, "GEQ");
 
         }
-        //EVEN: Even check (result 0/1)
         else if(IR[0] == 11) {
 
-            pas[sp]=(pas[sp]%2==0);
+           if(pas[sp]%2 == 0)
+            pas[(sp+1)] = 1;
+           else
+                pas[sp] = 0;
+             strcpy(opCode, "EVEN");
 
-            strcpy(opCode, "EVEN");
         }
 
 
